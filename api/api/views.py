@@ -6,48 +6,48 @@ from rest_framework.views import APIView
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+import jwt
 
-
-class HelloView(APIView):
+class TokenValidate(APIView):
     permission_classes = (IsAuthenticated,)
     def get(self, request):
-        content = {'message': 'Hello, World!'}
+        content = {"content": "This view is protected"}
         return Response(content)
 
-
-@api_view(['GET']) 
-#@permission_classes([IsAuthenticated])
-def get_tokens_for_user(user):
-    token = super().get_token(user)
-    token['username'] = user.username
-    #refresh = RefreshToken.for_user(user)
-    #data = {
-    #    'refresh': str(refresh),
-    #    'access': str(refresh.access_token),
-    #}
-    return JsonResponse(token)
-
-@api_view(['GET']) 
+@api_view(['GET'])  
 def getRoutes(request): 
     routes = [ 
         '/api/token',
         '/api/token/refresh/',
-        '/api/ApiUserRegister/',
     ]
     return Response(routes)
 
 @api_view(['GET'])
+#@permission_classes([IsAuthenticated, ])
+def authenticate_user(request, token):
+    decoded = jwt.decode(token, options={"verify_signature": False})
+    return Response(decoded)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def ApiUserRegister(request, company, username):
     if Company.objects.filter(company=company).exists():
-        company_id = Company.objects.get(company=company)
-        if User.objects.filter(username=username).exists():
-            if CustomUser.objects.filter(company_id=company_id, usernames_id=usernames_id).exists():
-                response = dict(company=company, username=username, message="The user is registered in the company", status=status.HTTP_302_FOUND, token=token)
-            else:
-                response = dict(company=company, username=username, message="The user is not registered in the company", status=status.HTTP_404_NOT_FOUND)
+        try:
+            company_id = Company.objects.get(company=company)
+        except:
+            response = dict(company=company, username=username, message="The company is not registered", status=status.HTTP_404_NOT_FOUND, token=0)
         else:
-            response = dict(company=company, username=username, message="The user is not registered", status=status.HTTP_404_NOT_FOUND)
-    else:
-        response = dict(company=company, username=username, message="The company is not registered", status=status.HTTP_404_NOT_FOUND)
-    return JsonResponse(response) 
+            if User.objects.filter(username=username).exists():
+                try:
+                    usernames_id = User.objects.get(username=username)
+                except:
+                    response = dict(company=company, username=username, message="The user is not registered in the company", status=status.HTTP_404_NOT_FOUND, token=0)
+                else:
+                    if CustomUser.objects.filter(company_id=company_id, usernames_id=usernames_id).exists():
+                        try:
+                            response = dict(company=company, username=username, message="The user is registered in the company", status=status.HTTP_302_FOUND, token=1)
+                        except:
+                            response = dict(company=company, username=username, message="The user is not registered in the company", status=status.HTTP_404_NOT_FOUND, token=0)
+        finally:
+            return JsonResponse(response) 
 
