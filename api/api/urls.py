@@ -5,8 +5,6 @@ from . import views
 from api.api.views import  ApiUserRegister, authenticate_user
 from rest_framework_simplejwt import views as jwt_views
 
-
-
 urlpatterns = [
     path('', views.getRoutes),
     path('token/', jwt_views.TokenObtainPairView.as_view(), name='token_obtain_pair'),
